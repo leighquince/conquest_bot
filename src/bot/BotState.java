@@ -100,6 +100,8 @@ public class BotState {
 					System.err.println("Unable to parse Neighbors " + e.getMessage());
 				}
 			}
+			
+			System.out.println(this.fullMap.superRegions.toString());
 		}
 	}
 	

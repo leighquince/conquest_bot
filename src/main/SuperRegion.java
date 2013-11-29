@@ -20,6 +20,20 @@ public class SuperRegion {
 			subRegions.add(subRegion);
 	}
 	
+	
+	public double getPercentageOwned(String playerName){
+		double superRegionSize = 0;
+		double iOwn = 0;
+		for (Region region : this.subRegions) {
+			superRegionSize++;
+			if(region.ownedByPlayer(playerName))
+			{
+				iOwn++;
+			}			
+		}	
+		return superRegionSize/iOwn;		
+	}
+	
 	/**
 	 * @return A string with the name of the player that fully owns this SuperRegion
 	 */
@@ -46,6 +60,21 @@ public class SuperRegion {
 	 */
 	public int getArmiesReward() {
 		return armiesReward;
+	}
+	
+	
+	@Override
+	public String toString(){
+		String output = "\n";
+		output += String.format("============Super Region %s=============%n",this.id);
+		output += String.format("Reward: %s%n",this.armiesReward);
+		output += String.format("Size: %s%n",this.subRegions.size());
+		output += String.format("Sub Regions:%n",this.id);
+		for (Region region : this.subRegions) {
+			output += String.format("\t Sub Region %s%n",region.getId());	
+		}
+		output += String.format("========================================%n");
+		return output;	
 	}
 	
 	/**

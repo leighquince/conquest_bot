@@ -28,20 +28,61 @@ public class BotStarter implements Bot
 	 */
 	public ArrayList<Region> getPreferredStartingRegions(BotState state, Long timeOut)
 	{
-		int m = 6;
+		//get southamerica 2 , safrica 4 and australia 6!
+		int m = 4;
 		ArrayList<Region> preferredStartingRegions = new ArrayList<Region>();
-		for(int i=0; i<m; i++)
-		{
-			double rand = Math.random();
-			int r = (int) (rand*state.getPickableStartingRegions().size());
-			int regionId = state.getPickableStartingRegions().get(r).getId();
-			Region region = state.getFullMap().getRegion(regionId);
-
-			if(!preferredStartingRegions.contains(region))
+		
+		//get into southamerica and australia
+		for (Region region : state.getPickableStartingRegions()) {
+			if(region.getSuperRegion().getId() == 2 ||region.getSuperRegion().getId() == 6)
+			{
 				preferredStartingRegions.add(region);
-			else
-				i--;
+				continue;
+			}	
 		}
+		
+		//try and get a neighbour
+		@SuppressWarnings("unchecked")
+		ArrayList<Region> chosenRegions = (ArrayList<Region>) preferredStartingRegions.clone();
+		for (Region region : state.getPickableStartingRegions()) {
+			if(!preferredStartingRegions.contains(region))
+			{
+				for (Region chosenRegion : chosenRegions) {
+					if(chosenRegion.isNeighbor(region))
+					{
+						preferredStartingRegions.add(region);
+						m++;
+					}
+					if(m == 6)
+					{
+						break;
+					}
+					
+				}
+			}
+			
+		}
+		
+		if(m != 6)
+		{
+			//get into southamerica and australia
+			for (Region region : state.getPickableStartingRegions()) {
+				if(region.getSuperRegion().getId() == 4 )
+				{
+					preferredStartingRegions.add(region);
+					m++;
+					if(m == 6)
+					{
+						break;
+					}
+
+				}	
+			}
+		}
+		
+		
+
+	
 		
 		return preferredStartingRegions;
 	}
@@ -60,6 +101,15 @@ public class BotStarter implements Bot
 		int armies = 2;
 		int armiesLeft = state.getStartingArmies();
 		LinkedList<Region> visibleRegions = state.getVisibleMap().getRegions();
+		
+
+		
+		//priority
+		 //First move gain a super region of size 4!
+		 //defend super region borders that neighbour enemy (always try to have a matching number of defenders)
+		 //gain regions in super regions where i have a presence
+		  //Priorities this with the weighting of how many men i have in the super region vs the number the enemy has
+		 
 		
 		while(armiesLeft > 0)
 		{
