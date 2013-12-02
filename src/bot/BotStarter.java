@@ -61,7 +61,7 @@ public class BotStarter implements Bot
 				}
 			}
 			
-		}
+		} 
 		
 		if(m != 6)
 		{
@@ -75,14 +75,9 @@ public class BotStarter implements Bot
 					{
 						break;
 					}
-
 				}	
 			}
 		}
-		
-		
-
-	
 		
 		return preferredStartingRegions;
 	}
@@ -109,6 +104,25 @@ public class BotStarter implements Bot
 		 //defend super region borders that neighbour enemy (always try to have a matching number of defenders)
 		 //gain regions in super regions where i have a presence
 		  //Priorities this with the weighting of how many men i have in the super region vs the number the enemy has
+		
+		//get a super region
+		for (Region region : visibleRegions) {
+			if(armiesLeft > 0)
+			{
+				if(region.getSuperRegion().getId() == 6 || region.getSuperRegion().getId() == 2 )
+				{
+					if(region.getSuperRegion().ownedByPlayer() != myName)
+					{
+						if(region.ownedByPlayer(myName))
+						{
+							placeArmiesMoves.add(new PlaceArmiesMove(myName, region, armiesLeft/2));
+							armiesLeft = armiesLeft/2;
+						}	
+					}
+					
+				}
+			}
+		}
 		 
 		
 		while(armiesLeft > 0)
@@ -152,12 +166,12 @@ public class BotStarter implements Bot
 					int r = (int) (rand*possibleToRegions.size());
 					Region toRegion = possibleToRegions.get(r);
 					
-					if(!toRegion.getPlayerName().equals(myName) && fromRegion.getArmies() > 6) //do an attack
+					if(!toRegion.getPlayerName().equals(myName) && fromRegion.getArmies() > toRegion.getArmies()+(toRegion.getArmies()/7)) //do an attack
 					{
 						attackTransferMoves.add(new AttackTransferMove(myName, fromRegion, toRegion, armies));
 						break;
 					}
-					else if(toRegion.getPlayerName().equals(myName) && fromRegion.getArmies() > 1) //do a transfer
+					else if(toRegion.getPlayerName().equals(myName) && (toRegion.getSuperRegion().getId() != fromRegion.getSuperRegion().getId()) && fromRegion.getArmies() > 2) //do a transfer
 					{
 						attackTransferMoves.add(new AttackTransferMove(myName, fromRegion, toRegion, armies));
 						break;
