@@ -101,7 +101,8 @@ public class BotState {
 				}
 			}
 			
-			System.out.println(this.fullMap.superRegions.toString());
+			
+			//System.err.println(this.fullMap.superRegions.toString());
 		}
 	}
 	
