@@ -13,16 +13,8 @@ public class BotParser {
 	
 	final Bot bot;
 	
-	private BotState currentState;
+	BotState currentState;
 	
-	public BotState getCurrentState() {
-		return currentState;
-	}
-
-	public void setCurrentState(BotState currentState) {
-		this.currentState = currentState;
-	}
-
 	public BotParser(Bot bot)
 	{
 		this.scan = new Scanner(System.in);

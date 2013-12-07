@@ -71,7 +71,7 @@ public class SuperRegion {
 		output += String.format("Size: %s%n",this.subRegions.size());
 		output += String.format("Sub Regions:%n",this.id);
 		for (Region region : this.subRegions) {
-			output += String.format("\t Sub Region %s owned by %s%n",region.getId(), region.getPlayerName());	
+			output += String.format("\t Sub Region %s%n",region.getId());	
 		}
 		output += String.format("========================================%n");
 		return output;	

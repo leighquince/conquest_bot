@@ -17,6 +17,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.w3c.dom.NodeList;
+
 import main.Region;
 import main.RegionNode;
 import main.SuperRegion;
@@ -25,13 +27,6 @@ import move.PlaceArmiesMove;
 
 public class BotStarter implements Bot 
 {
-	
-	ArrayList<AttackTransferMove> attackTransferMoves;
-	LinkedList<Region> visibleRegions;
-	LinkedList<Region> myRegions;
-	LinkedList<Region> enemyRegions;
-	
-	
 	@Override
 	/**
 	 * A method used at the start of the game to decide which player start with what Regions. 6 Regions are required to be returned.
@@ -125,41 +120,14 @@ public class BotStarter implements Bot
 		for (Region region : myRegions) {
 			if(!alreadyPlaced(placeArmiesMoves,region) && armiesLeft > 0)
 			{	
-				
+				//region i own majority of where enemy has invaded
 				if(region.getSuperRegion().ownedByPlayer() == myName)
 				{
 					if(!this.surrondedByFriends(region, state))
 					{	
 						for (Region neighbour : region.getNeighbors()) {
 								
-							if(neighbour.getArmies() > region.getArmies()*0.9 && neighbour.getPlayerName().equals(state.getOpponentPlayerName()))
-							{	
-								armiesPlacing = armiesLeft;
-								if(armiesPlacing<2)
-								{
-									armiesPlacing = armiesLeft;
-								}
-								placeArmiesMoves.add(new PlaceArmiesMove(myName, region, armiesPlacing));
-								armiesLeft = armiesLeft-armiesPlacing;
-							
-							}					
-						}
-					}
-				}
-			}
-		}
-		
-		for (Region region : myRegions) {
-			if(!alreadyPlaced(placeArmiesMoves,region) && armiesLeft > 0)
-			{	
-				
-				if(region.getSuperRegion().ownedByPlayer() == myName)
-				{
-					if(!this.surrondedByFriends(region, state))
-					{	
-						for (Region neighbour : region.getNeighbors()) {
-								
-							if(neighbour.getArmies() > region.getArmies()*0.9 && !neighbour.getPlayerName().equals(state.getMyPlayerName()))
+							if(neighbour.getArmies() > region.getArmies()*0.9 && armiesLeft > 0)
 							{	
 								armiesPlacing = (int) (armiesLeft*0.8);
 								if(armiesPlacing<2)
@@ -201,7 +169,7 @@ public class BotStarter implements Bot
 		for (Region region : myRegions) {
 			if(alreadyPlaced(placeArmiesMoves,region) || !(armiesLeft >0))
 			{
-				break;
+				continue;
 			}
 				
 			if(region.getSuperRegion().ownedByPlayer() != myName)
@@ -222,7 +190,7 @@ public class BotStarter implements Bot
 		for (Region region : myRegions) {
 			if(alreadyPlaced(placeArmiesMoves,region) || !(armiesLeft >0))
 			{
-				break;
+				continue;
 			}
 			if(region.getSuperRegion().ownedByPlayer() == myName)
 			{
@@ -236,7 +204,7 @@ public class BotStarter implements Bot
 								armiesPlacing = armiesLeft == 1? 1: (int)(armiesLeft*0.5);
 								armiesPlacing = armiesPlacing+region.getArmies()>=neighbour.getArmies()?armiesPlacing:armiesLeft;
 								placeArmiesMoves.add(new PlaceArmiesMove(myName, region, armiesPlacing));
-								armiesLeft = armiesPlacing;
+								armiesLeft = armiesLeft-armiesPlacing;
 							}else{
 								if(neighbour.getArmies()<(int)region.getArmies()*0.9)
 								{
@@ -255,7 +223,7 @@ public class BotStarter implements Bot
 		for (Region region : myRegions) {
 			if(alreadyPlaced(placeArmiesMoves,region) || !(armiesLeft >0))
 			{
-				break;
+				continue;
 			}
 			
 		 if(enemyIsWeak(region, state)){
@@ -268,14 +236,14 @@ public class BotStarter implements Bot
 			
 		}
 		
-		if(armiesLeft >0)
+		if(armiesLeft >0 && !myRegions.isEmpty())
 		{
 			Region region = myRegions.get((int)(Math.random()*myRegions.size()));
 			placeArmiesMoves.add(new PlaceArmiesMove(myName, region, armiesLeft));
 		}
 		return placeArmiesMoves;
 	}
-	
+
 	
 	@Override
 	/**
@@ -286,16 +254,49 @@ public class BotStarter implements Bot
 	public ArrayList<AttackTransferMove> getAttackTransferMoves(BotState state, Long timeOut) 
 	{
 		
-		attackTransferMoves = new ArrayList<AttackTransferMove>();		
-		visibleRegions = state.getVisibleMap().getRegions();
-		myRegions = new LinkedList<Region>();
-		enemyRegions = new LinkedList<Region>();
+		ArrayList<AttackTransferMove> attackTransferMoves = new ArrayList<AttackTransferMove>();
+		ArrayList<PlaceArmiesMove> placeArmiesMoves = new ArrayList<PlaceArmiesMove>();
+		String myName = state.getMyPlayerName();
+		String enemyName = state.getOpponentPlayerName();
 		
-		getMyRegions(state);
+		LinkedList<Region> visibleRegions = state.getVisibleMap().getRegions();
+		LinkedList<Region> myRegions = new LinkedList<Region>();
+		LinkedList<Region> enemyRegions = new LinkedList<Region>();
 		
 		
-		//support friends
-		supportFriends(state);
+		
+		//get my regions
+		for (Region region : visibleRegions) {
+			if(region.ownedByPlayer(myName))
+			{
+				myRegions.add(region);
+			}else{
+				enemyRegions.add(region);
+			}
+		}
+		
+		
+		
+		for (Region fromRegion : myRegions) {	
+			if(surrondedByFriends(fromRegion,state))
+			{
+				System.out.println("Looking for friends");
+				if( mostInNeedNeighbour(fromRegion.getNeighbors(),state,fromRegion) != null)
+				{	
+					Region toRegion = mostInNeedNeighbour(fromRegion.getNeighbors(),state,fromRegion);
+					if(fromRegion.getArmies() >1)
+					{
+						int armiesToMove = fromRegion.getArmies()-1;
+						attackTransferMoves.add(new AttackTransferMove(myName, fromRegion, toRegion, armiesToMove));
+					}
+				}else{
+					
+					
+					
+				}
+			}
+				
+		}
 		
 		//don't attack from the paces i have moved from
 		for (AttackTransferMove movesSoFar : attackTransferMoves) {		
@@ -303,17 +304,17 @@ public class BotStarter implements Bot
 		}
 		
 		for (Region fromRegion : myRegions) {
-			if(fromRegion.getSuperRegion().getPercentageOwned(state.getMyPlayerName())>=0.5)
+			if(fromRegion.getSuperRegion().getPercentageOwned(myName)>=0.5)
 			{
 				if(!surrondedByFriends(fromRegion,state))
 				{
 					for (Region toRegion : fromRegion.getNeighbors()) {
-						if(!toRegion.ownedByPlayer(state.getMyPlayerName()) && toRegion.getSuperRegion().equals(fromRegion.getSuperRegion()) && shouldAttack(fromRegion,state))
+						if(!toRegion.ownedByPlayer(state.getMyPlayerName()) && toRegion.getSuperRegion().equals(fromRegion.getSuperRegion()))
 						{
-							if(toRegion.getArmies() < fromRegion.getArmies()*0.7)
+							if(toRegion.getArmies() < fromRegion.getArmies()*0.6)
 							{
 								
-								int armiesToMove = getNumberOfSurroundingEnemyRegions(fromRegion,state)==1?fromRegion.getArmies()-1:(int) (toRegion.getArmies()+(toRegion.getArmies()*0.7));
+								int armiesToMove = (int) (toRegion.getArmies()+(toRegion.getArmies()*0.6));
 								if(armiesToMove < 4)
 								{
 									armiesToMove = 4;
@@ -323,7 +324,7 @@ public class BotStarter implements Bot
 									continue;
 								}
 																
-								attackTransferMoves.add(new AttackTransferMove(state.getMyPlayerName(), fromRegion, toRegion, armiesToMove));
+								attackTransferMoves.add(new AttackTransferMove(myName, fromRegion, toRegion, armiesToMove));
 								if((fromRegion.getArmies()-armiesToMove > 5))
 								{
 									continue;
@@ -343,45 +344,25 @@ public class BotStarter implements Bot
 		}
 		
 		//attack weak regions
-		for (Region fromRegion : myRegions) {
-			
-			int myArmies = fromRegion.getArmies();
-			int enemyAround = 0;
-			int numberOfEnemy =0;
-			for (Region toRegion : fromRegion.getNeighbors()) {
-				if(!toRegion.ownedByPlayer(state.getMyPlayerName()))
-				{
-					if(toRegion.ownedByPlayer(state.getOpponentPlayerName()))
-					{
-						enemyAround+=toRegion.getArmies();
-					}
-					numberOfEnemy++;
-				}
-				
-				
-			}
-			
-			boolean shouldAttack = myArmies>enemyAround;
-			for (Region toRegion : fromRegion.getNeighbors()) {
-				if(toRegion.getArmies() < fromRegion.getArmies()*0.7 && !toRegion.ownedByPlayer(state.getMyPlayerName()) &&shouldAttack)
+		for (Region fromRegion1 : myRegions) {
+			for (Region toRegion : fromRegion1.getNeighbors()) {
+				if(toRegion.getArmies() < fromRegion1.getArmies()*0.5 && !toRegion.ownedByPlayer(state.getMyPlayerName()))
 				{
 					
-					int armiesToMove = numberOfEnemy==1?fromRegion.getArmies()-1:(int) (toRegion.getArmies()+(toRegion.getArmies()*0.7));
+					int armiesToMove = (int) (toRegion.getArmies()+(toRegion.getArmies()*0.6));
 					if(armiesToMove < 4)
 					{
 						armiesToMove = 4;
 					}
-					if(armiesToMove >= fromRegion.getArmies())
+					if(armiesToMove >= fromRegion1.getArmies())
 					{
 						continue;
 					}
 													
-					attackTransferMoves.add(new AttackTransferMove(state.getMyPlayerName(), fromRegion, toRegion, armiesToMove));
-					
-					
-					if((fromRegion.getArmies()-armiesToMove > 5))
+					attackTransferMoves.add(new AttackTransferMove(myName, fromRegion1, toRegion, armiesToMove));
+					if((fromRegion1.getArmies()-armiesToMove > 5))
 					{
-						fromRegion.setArmies(fromRegion.getArmies()-armiesToMove);
+						fromRegion1.setArmies(fromRegion1.getArmies()-armiesToMove);
 						continue;
 					}else{
 						break;
@@ -394,82 +375,69 @@ public class BotStarter implements Bot
 		return attackTransferMoves;
 	}
 	
-	private boolean shouldAttack(Region region, BotState state)
+	
+	
+	private Region unPickPath(RegionNode goal)
 	{
-		int myArmies = region.getArmies();
-		int enemyAround = 0;
-		for (Region toRegion : region.getNeighbors()) {
-			if(toRegion.ownedByPlayer(state.getOpponentPlayerName()))
-			{
-				enemyAround+=toRegion.getArmies();
-			}
+		if(goal.getDistanceFromStart() == 10)
+		{
+			return goal.getRegion();
+		}else if(goal.getDistanceFromStart() == 0)
+		{
+			return null;
 		}
-		return  myArmies>enemyAround;
-	}
-	private int getNumberOfSurroundingEnemyRegions(Region region, BotState state){
-		
-		int myArmies = region.getArmies();
-		int numberOfEnemy =0;
-		for (Region toRegion : region.getNeighbors()) {
-			if(!toRegion.ownedByPlayer(state.getMyPlayerName()))
-			{
-				
-				numberOfEnemy++;
-			}
-			
-			
-		}
-		
-		return numberOfEnemy;
-	}
-
-	private void supportFriends(BotState state) {
-		for (Region fromRegion : myRegions) {	
-			if(surrondedByFriends(fromRegion,state))
-			{
-				if( mostInNeedNeighbour(fromRegion.getNeighbors(),state,fromRegion) != null)
-				{	
-					Region toRegion = mostInNeedNeighbour(fromRegion.getNeighbors(),state,fromRegion);
-					if(fromRegion.getArmies() >1)
-					{
-						int armiesToMove = fromRegion.getArmies()-1;
-						attackTransferMoves.add(new AttackTransferMove(state.getMyPlayerName(), fromRegion, toRegion, armiesToMove));
-						toRegion.setArmies(toRegion.getArmies()+armiesToMove);
-					}
-				}else if(fromRegion.getArmies()>2){
-					List<RegionNode> open = new ArrayList<RegionNode>(); 
-					List<RegionNode> closed = new ArrayList<RegionNode>(); 
-					
-					open.add(new RegionNode(null,fromRegion,0));
-					RegionNode regionNode = closestFriendInNeed(open,closed,state);
-					if(regionNode  != null)
-					{
-						Region toRegion = unPickPath(regionNode);
-						if(toRegion != null)
-						{
-							int armiesToMove = fromRegion.getArmies()-1;
-							attackTransferMoves.add(new AttackTransferMove(state.getMyPlayerName(), fromRegion, toRegion, armiesToMove));
-							toRegion.setArmies(toRegion.getArmies()+armiesToMove);
-							
-						}
-						
-					}
-				}
-			}			
-		}
-	}
-
-	private void getMyRegions(BotState state) {
-		for (Region region : visibleRegions) {
-			if(region.ownedByPlayer(state.getMyPlayerName()))
-			{
-				myRegions.add(region);
-			}else{
-				enemyRegions.add(region);
-			}
+		else{
+			return unPickPath(goal.getParentRegion());
 		}
 	}
 	
+	private RegionNode closestFriendInNeed(List<RegionNode> open,List<RegionNode> closed, BotState state)
+	{
+		RegionNode currentNode = getLowestCostNode(open);
+		open.remove(currentNode);
+		closed.add(currentNode);
+
+		for (Region neighBourToOpen : currentNode.getRegion().getNeighbors()) {
+			
+			if(closed.contains(neighBourToOpen))
+			{
+				break;
+			}
+			if(neighBourToOpen.getPlayerName().equals(state.getMyPlayerName()))
+			{
+				open.add(new RegionNode(currentNode,neighBourToOpen,currentNode.getDistanceFromStart()+10));
+			}
+			if(neighBourToOpen.getPlayerName().equals(state.getOpponentPlayerName()))
+			{
+				return new RegionNode(currentNode,neighBourToOpen,currentNode.getDistanceFromStart()+10);
+			}
+		}
+		
+		if(open.isEmpty())
+		{
+			return null;
+		}else{
+			return closestFriendInNeed(open,closed,state);
+		}
+		
+	}
+	
+
+	private RegionNode getLowestCostNode(List<RegionNode> open) {
+		Integer distance = 1000000000;
+		RegionNode node = null;
+		for (RegionNode regionNode : open) {
+			if(regionNode.getDistanceFromStart()< distance)
+			{
+				distance = regionNode.getDistanceFromStart();
+				node = regionNode;
+			}
+			
+		}
+		
+		return node;
+	}
+
 	private boolean alreadyPlaced(ArrayList<PlaceArmiesMove> placeArmiesMoves,
 			Region region) {
 		for ( PlaceArmiesMove placeArmiesMove : placeArmiesMoves) {
@@ -499,6 +467,21 @@ public class BotStarter implements Bot
 		}
 		
 		return false;
+	}
+	
+	private boolean surrondedByFriendsINSuperRegion(Region region, BotState state)
+	{
+		for (Region neighbour : region.getNeighbors()) {
+			
+			if(!neighbour.ownedByPlayer(state.getMyPlayerName()) && neighbour.getSuperRegion().getId() == region.getSuperRegion().getId())
+			{
+				return false;
+			}
+	
+		}
+
+		return true;
+		
 	}
 	
 	private boolean surrondedByFriends(Region region, BotState state)
@@ -545,92 +528,7 @@ public class BotStarter implements Bot
 			}
 		}
 			
-		return rank == null?null:regionRank;
-	}
-	
-	
-	private Region unPickPath(RegionNode goal)
-	{
-		if(goal.getDistanceFromStart() == 10)
-		{
-			return goal.getRegion();
-		}else if(goal.getDistanceFromStart() == 0)
-		{
-			return null;
-		}
-		else{
-			return unPickPath(goal.getParentRegion());
-		}
-	}
-	
-	private RegionNode closestFriendInNeed(List<RegionNode> open,List<RegionNode> closed, BotState state)
-	{
-		RegionNode currentNode = getLowestCostNode(open);
-		open.remove(currentNode);
-		closed.add(currentNode);
-
-		for (Region neighBourToOpen : currentNode.getRegion().getNeighbors()) {
-			boolean cont = true;
-			for (RegionNode regionNode : closed) {
-				if(regionNode.getRegion().equals(neighBourToOpen))
-				{
-					cont = false;
-					break;
-				}
-			}
-			if(!cont)
-			{
-				break;
-			}
-			
-			if(neighBourToOpen.getPlayerName().equals(state.getMyPlayerName()))
-			{
-				
-				boolean add = true;
-				for (RegionNode regionNode : open) {
-					if(regionNode.getRegion().equals(neighBourToOpen))
-					{
-						if(currentNode.getDistanceFromStart()+10<regionNode.getDistanceFromStart())
-						{
-							regionNode.setParentRegion(currentNode);
-							regionNode.setDistanceFromStart(currentNode.getDistanceFromStart()+10);
-							add=false;
-							break;
-						}
-					}
-				}
-				if(add)
-				{
-					open.add(new RegionNode(currentNode,neighBourToOpen,currentNode.getDistanceFromStart()+10));
-				}
-			}
-			if(!neighBourToOpen.getPlayerName().equals(state.getMyPlayerName()))
-			{
-				return new RegionNode(currentNode,neighBourToOpen,currentNode.getDistanceFromStart()+10);
-			}
-		}
-		
-		if(open.isEmpty())
-		{
-			return null;
-		}else{
-			return closestFriendInNeed(open,closed,state);
-		}
-		
-	}
-	private RegionNode getLowestCostNode(List<RegionNode> open) {
-		Integer distance = 1000000000;
-		RegionNode node = null;
-		for (RegionNode regionNode : open) {
-			if(regionNode.getDistanceFromStart()< distance)
-			{
-				distance = regionNode.getDistanceFromStart();
-				node = regionNode;
-			}
-			
-		}
-		
-		return node;
+		return rank == null || rank <= 0?null:regionRank;
 	}
 
 	public static void main(String[] args)
