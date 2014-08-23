@@ -12,6 +12,7 @@ package bot;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -123,32 +124,21 @@ public class BotStarter implements Bot
 		int armiesPlacing = 1;
 		
 		for (Region region : myRegions) {
-			if(armiesLeft>0)
+			boolean bothered = false;
+			for (Region neighbour : region.getNeighbors()) {
+				if(neighbour.getPlayerName().equals(state.getMyPlayerName()) && neighbour.getSuperRegion().getId() != region.getSuperRegion().getId() && neighbour.getArmies() <3 )
 				{
-				if(this.surrondedByFriends(region, state))
-				{
-					continue;
+					bothered = true;
 				}
-				boolean bothered = false;
-				for (Region neighbour : region.getNeighbors()) {
-					if(neighbour.getPlayerName().equals(state.getMyPlayerName()) && neighbour.getSuperRegion().getId() != region.getSuperRegion().getId() && neighbour.getArmies() <3 )
-					{
-						bothered = true;
-					}
-					
-				}
-				if(!this.shouldAttack(region, state) && bothered)
-				{
-					armiesPlacing = armiesLeft-1;
-					placeArmiesMoves.add(new PlaceArmiesMove(myName, region, armiesPlacing));
-					armiesLeft = armiesLeft-armiesPlacing;
-				}
+				
+			}
+			if(!this.shouldAttack(region, state) && bothered)
+			{
+				armiesPlacing = armiesLeft-1;
+				placeArmiesMoves.add(new PlaceArmiesMove(myName, region, armiesPlacing));
+				armiesLeft = armiesLeft-armiesPlacing;
 			}
 		}
-		
-		
-		
-		
 		for (Region region : myRegions) {
 			if(!alreadyPlaced(placeArmiesMoves,region) && armiesLeft > 0)
 			{	
@@ -162,10 +152,13 @@ public class BotStarter implements Bot
 							if(neighbour.getArmies() > region.getArmies()*0.9 && neighbour.getPlayerName().equals(state.getOpponentPlayerName()))
 							{	
 								armiesPlacing = armiesLeft;
-								
+								if(armiesPlacing<2)
+								{
+									armiesPlacing = armiesLeft;
+								}
 								placeArmiesMoves.add(new PlaceArmiesMove(myName, region, armiesPlacing));
 								armiesLeft = armiesLeft-armiesPlacing;
-								break;
+							
 							}					
 						}
 					}
@@ -183,7 +176,7 @@ public class BotStarter implements Bot
 					{	
 						for (Region neighbour : region.getNeighbors()) {
 								
-							if(neighbour.getArmies() > region.getArmies()*0.9 && !neighbour.getPlayerName().equals(state.getMyPlayerName())&& armiesLeft>0)
+							if(neighbour.getArmies() > region.getArmies()*0.9 && !neighbour.getPlayerName().equals(state.getMyPlayerName()))
 							{	
 								armiesPlacing = (int) (armiesLeft*0.8);
 								if(armiesPlacing<2)
@@ -244,7 +237,7 @@ public class BotStarter implements Bot
 		
 		//border with heavy enemy
 		for (Region region : myRegions) {
-			if(alreadyPlaced(placeArmiesMoves,region) || !(armiesLeft >0) || surrondedByFriends(region, state))
+			if(alreadyPlaced(placeArmiesMoves,region) || !(armiesLeft >0))
 			{
 				break;
 			}
@@ -294,36 +287,8 @@ public class BotStarter implements Bot
 		
 		if(armiesLeft >0)
 		{
-			for (Region region : myRegions) {
-				List<Region> neighbours = region.getNeighbors();
-				for (Region neighbour : neighbours) {
-					if(neighbour.getPlayerName().equals(state.getOpponentPlayerName()))
-					{
-
-						placeArmiesMoves.add(new PlaceArmiesMove(myName, region, armiesLeft));
-						armiesLeft = 0;
-						break;
-					}
-				}
-			}
-			
-		}
-		
-		if(armiesLeft >0)
-		{
-			for (Region region : myRegions) {
-				List<Region> neighbours = region.getNeighbors();
-				for (Region neighbour : neighbours) {
-					if(!neighbour.getPlayerName().equals(state.getMyPlayerName()))
-					{
-
-						placeArmiesMoves.add(new PlaceArmiesMove(myName, region, armiesLeft));
-						armiesLeft = 0;
-						break;
-					}
-				}
-			}
-			
+			Region region = myRegions.get((int)(Math.random()*myRegions.size()));
+			placeArmiesMoves.add(new PlaceArmiesMove(myName, region, armiesLeft));
 		}
 		return placeArmiesMoves;
 	}
@@ -484,6 +449,7 @@ public class BotStarter implements Bot
 	
 	private int getNumberOfSurroundingEnemyRegions(Region region, BotState state){
 		
+		int myArmies = region.getArmies();
 		int numberOfEnemy =0;
 		for (Region toRegion : region.getNeighbors()) {
 			if(!toRegion.ownedByPlayer(state.getMyPlayerName()))

@@ -31,7 +31,7 @@ public class SuperRegion {
 				iOwn++;
 			}			
 		}	
-		return iOwn/superRegionSize;		
+		return superRegionSize/iOwn;		
 	}
 	
 	/**
